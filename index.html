@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors - AI Vision</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-text { background: linear-gradient(to right, #34d399, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .card { background-color: rgba(31, 41, 55, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .win-glow { box-shadow: 0 0 30px 5px rgba(52, 211, 153, 0.5); }
+        .lose-glow { box-shadow: 0 0 30px 5px rgba(248, 113, 113, 0.5); }
+        .tie-glow { box-shadow: 0 0 30px 5px rgba(96, 165, 250, 0.5); }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-5xl mx-auto">
+        <header class="text-center mb-6 md:mb-8">
+            <h1 class="text-4xl md:text-5xl font-black gradient-text">AI Vision: Rock Paper Scissors</h1>
+            <!-- EDIT: Added instructions for the user -->
+            <p class="text-gray-400 mt-2 text-sm md:text-base">For best results, play in a well-lit room and keep your hand centered.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            
+            <div class="lg:col-span-3 w-full aspect-w-4 aspect-h-3 bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border-2 border-gray-700">
+                <img id="video-feed" src="/video_feed" class="w-full h-full object-cover" alt="Video Feed">
+            </div>
+
+            <div class="lg:col-span-2 flex flex-col justify-between space-y-4">
+                
+                <div class="card rounded-2xl p-4 text-center shadow-lg transition-shadow duration-300" id="scoreboard">
+                    <h2 class="text-xl font-bold text-gray-300 mb-2">SCORE</h2>
+                    <p class="text-5xl font-black">
+                        <span id="player-score" class="text-emerald-400">0</span>
+                        <span class="mx-3 text-gray-500">-</span>
+                        <span id="computer-score" class="text-red-400">0</span>
+                    </p>
+                    <div class="flex justify-between mt-1 text-xs text-gray-400 px-4"><span>YOU</span><span>CPU</span></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-center card rounded-2xl p-4 shadow-lg">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-300 mb-2">YOU CHOSE</h3>
+                        <div id="player-choice" class="text-2xl h-12 font-bold flex items-center justify-center">WAITING</div>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-300 mb-2">CPU CHOSE</h3>
+                        <div id="computer-choice" class="text-2xl h-12 font-bold flex items-center justify-center">WAITING</div>
+                    </div>
+                </div>
+
+                <div class="text-center space-y-3">
+                    <p id="result-text" class="text-4xl font-extrabold h-10 transition-all duration-300">&nbsp;</p>
+                    <button id="play-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 disabled:bg-gray-500 disabled:cursor-not-allowed">PLAY</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const playerScoreEl = document.getElementById('player-score');
+        const computerScoreEl = document.getElementById('computer-score');
+        const playerChoiceEl = document.getElementById('player-choice');
+        const computerChoiceEl = document.getElementById('computer-choice');
+        const resultTextEl = document.getElementById('result-text');
+        const playButton = document.getElementById('play-button');
+        const scoreboard = document.getElementById('scoreboard');
+
+        async function startGame() {
+            try {
+                await fetch('/start_game', { method: 'POST' });
+            } catch (error) {
+                console.error('Could not start game:', error);
+            }
+        }
+        playButton.addEventListener('click', startGame);
+
+        const eventSource = new EventSource("/game_data");
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+
+            playerScoreEl.textContent = data.player_score;
+            computerScoreEl.textContent = data.computer_score;
+            playerChoiceEl.textContent = data.player_choice;
+            computerChoiceEl.textContent = data.computer_choice;
+            resultTextEl.textContent = data.result;
+
+            playButton.disabled = (data.gameState === 'countdown');
+            
+            scoreboard.classList.remove('win-glow', 'lose-glow', 'tie-glow');
+            resultTextEl.classList.remove('text-emerald-400', 'text-red-400', 'text-blue-400');
+
+            if (data.result === "YOU WIN!") {
+                resultTextEl.classList.add('text-emerald-400');
+                scoreboard.classList.add('win-glow');
+            } else if (data.result === "COMPUTER WINS!") {
+                resultTextEl.classList.add('text-red-400');
+                scoreboard.classList.add('lose-glow');
+            } else if (data.result === "TIE!") {
+                resultTextEl.classList.add('text-blue-400');
+                scoreboard.classList.add('tie-glow');
+            }
+        };
+    </script>
+</body>
+</html>
